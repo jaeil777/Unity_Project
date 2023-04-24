@@ -34,6 +34,7 @@ public class GameManager : MonoBehaviour
     {
 
         if (Input.GetButtonDown("Cancel"))
+        {
             if (menuSet.activeSelf)
             {
                 menuSet.SetActive(false);
@@ -43,10 +44,24 @@ public class GameManager : MonoBehaviour
             {
                 menuSet.SetActive(true);
             }
+        }
+           
 
     }
 
+    public void SubMenuActive()
+    {
+        
+            if (menuSet.activeSelf)
+            {
+                menuSet.SetActive(false);
 
+            }
+            else
+            {
+                menuSet.SetActive(true);
+            }
+    }
     public void Action(GameObject scObj)
     {
         scanObject = scObj;
