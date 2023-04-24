@@ -11,12 +11,6 @@ public class GameManager : MonoBehaviour
     public Text needItemText;
     public Text nowItemText;
 
-
-    private void Awake()
-    {
-        needItemText.text = "/" + totalItemCount.ToString();
-    }
-
     public void GoGame()
     {
         SceneManager.LoadScene("Stage1");
@@ -25,6 +19,12 @@ public class GameManager : MonoBehaviour
     {
         SceneManager.LoadScene("GameStart");
     }
+    private void Awake()
+    {
+        needItemText.text = "/" + totalItemCount.ToString();
+    }
+
+
     public void GetItem(int count)
     {
         nowItemText.text = count.ToString();
