@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.SearchService;
 using UnityEngine;
 
 public class Player : MonoBehaviour
@@ -7,7 +8,9 @@ public class Player : MonoBehaviour
     public float speed;
 
     public GameObject[] weapons;
+    public GameObject[] grenades;
     public bool[] hasweapons;
+
 
     public int ammo;
     public int coin;
@@ -185,20 +188,55 @@ public class Player : MonoBehaviour
     private void OnTriggerStay(Collider other)
     {
 
-        if(other.tag =="Weapon")
+        if (other.tag == "Weapon")
             nearObject = other.gameObject;
-        Item item = nearObject.GetComponent<Item>();
+        else
+            return;
+        Item item = other.GetComponent<Item>();
         int weaponIndex = item.value;
         hasweapons[weaponIndex] =true;
 
         Destroy(nearObject);
 
-        Debug.Log(nearObject.name);
+        
     }
     private void OnTriggerExit(Collider other)
     {
 
         if (other.tag == "Weapon")
             nearObject = null;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if(other.tag == "Item")
+        {
+            Item item = other.GetComponent<Item>();
+            switch (item.type)
+            {
+                case Item.Type.Ammo:
+                    ammo += item.value;
+                    if(ammo > maxAmmo)
+                    {
+                        ammo = maxAmmo;
+                    }
+                    break;
+                case Item.Type.Coin:
+                    coin += item.value;
+                    if(coin>maxCoin)
+                    {
+                        coin = maxCoin;
+                    }
+                    break;
+
+                case Item.Type.Grenade:
+                    if (hasGrenades == maxHasGrenades)
+                        return;
+                    grenades[hasGrenades].SetActive(true);
+                    hasGrenades += item.value;
+                    break;
+            }
+            Destroy(other.gameObject);
+        }
     }
 }
