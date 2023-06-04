@@ -1,29 +1,39 @@
+using JetBrains.Annotations;
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
 using UnityEngine;
 using UnityEngine.AI;
 
 public class Enemy : MonoBehaviour
 {
+    public enum Type { A,B,C,D};
+    public Type enemyType;
     public int maxHealth;
     public int curHealth;
     public Transform target;
+    public BoxCollider meleeArea;
     public bool isChase;
+    public bool isAttack;
+    public bool isDead;
+    public GameObject bullet;
 
-    Rigidbody rigid;
-    BoxCollider boxCollider;
-    Material mat;
-    NavMeshAgent nav;
-    Animator anim;
+    public Rigidbody rigid;
+    public BoxCollider boxCollider;
+    public MeshRenderer[] meshs;
+    public NavMeshAgent nav;
+    public Animator anim;
 
     private void Awake()
     {
         rigid = GetComponent<Rigidbody>();
         boxCollider = GetComponent<BoxCollider>();
-        mat = GetComponentInChildren<MeshRenderer>().material;
+       
         nav = GetComponentInChildren<NavMeshAgent>();
         anim = GetComponentInChildren<Animator>();
+        meshs = GetComponentsInChildren<MeshRenderer>();
 
+        if (enemyType != Type.D)
         Invoke("ChaseStart", 2);
     }
 
@@ -34,8 +44,11 @@ public class Enemy : MonoBehaviour
     }
     private void Update()
     {
-        if(isChase) 
-             nav.SetDestination(target.position);
+        if (nav.enabled && enemyType != Type.D)
+        {
+            nav.SetDestination(target.position);
+            nav.isStopped = !isChase;
+        }
     }
     void FreezeVelocity()
     {
@@ -46,9 +59,96 @@ public class Enemy : MonoBehaviour
         }
 
     }
+    void Targeting()
+    {
+        if(!isDead &&enemyType != Type.D)
+        {
+            float targetRadius = 0;
+            float targetRange = 0;
+
+            switch (enemyType)
+            {
+
+                case Type.A:
+                    targetRadius = 1.5f;
+                    targetRange = 3f;
+                    break;
+                case Type.B:
+                    targetRadius = 1f;
+                    targetRange = 6f;
+
+                    break;
+                case Type.C:
+                    targetRadius = 0.5f;
+                    targetRange = 25f;
+
+                    break;
+            }
+            RaycastHit[] rayHIts = Physics.SphereCastAll(transform.position, targetRadius, transform.forward, targetRange, LayerMask.GetMask("Player"));
+            if (rayHIts.Length > 0 && !isAttack)
+            {
+                StartCoroutine(Attack());
+
+            }
+        }
+    
+    }
+
+    IEnumerator Attack()
+    {
+        isChase = false;
+        isAttack = true;
+        anim.SetBool("isAttack", true);
+
+        switch (enemyType)
+        {
+            case Type.A:
+
+                yield return new WaitForSeconds(0.2f);
+                meleeArea.enabled = true;
+
+                yield return new WaitForSeconds(1f);
+                meleeArea.enabled = false;
+
+
+                break;
+
+            case Type.B:
+
+                yield return new WaitForSeconds(0.1f);
+                rigid.AddForce(transform.forward*20, ForceMode.Impulse);
+                
+                meleeArea.enabled = true;
+
+                yield return new WaitForSeconds(0.5f);
+                rigid.velocity = Vector3.zero;
+                meleeArea.enabled = false;
+                yield return new WaitForSeconds(2f);
+
+
+                break;
+
+
+
+            case Type.C:
+                yield return new WaitForSeconds(0.5f);
+                GameObject instantBullet = Instantiate(bullet, transform.position, transform.rotation);
+                Rigidbody rigidBullet = instantBullet.GetComponent<Rigidbody>();
+                rigidBullet.velocity = transform.forward*20;
+                yield return new WaitForSeconds(2f);
+                break;
+        }
+        isChase = true;
+        isAttack = false;
+        anim.SetBool("isAttack", false);
+
+    }
     void FixedUpdate()
     {
+        Targeting();
         FreezeVelocity();
+
+       
     }
 
     private void OnTriggerEnter(Collider other)
@@ -78,17 +178,28 @@ public class Enemy : MonoBehaviour
     }
     IEnumerator OnDamage(Vector3 reactVec, bool isGrenade)
     {
-        mat.color = Color.red;
+        foreach(MeshRenderer mesh in meshs)
+        {
+            mesh.material.color = UnityEngine.Color.red;
+        }
+   
         yield return new WaitForSeconds(0.1f);
 
         if (curHealth > 0)
         {
-            mat.color = Color.white;
+            foreach (MeshRenderer mesh in meshs)
+            {
+                mesh.material.color = UnityEngine.Color.white;
+            }
         }
         else
         {
-            mat.color = Color.gray;
+            foreach (MeshRenderer mesh in meshs)
+            {
+                mesh.material.color = UnityEngine.Color.gray;
+            }
             gameObject.layer = 14;
+            isDead = true;
             isChase = false;
             nav.enabled = false;
             anim.SetTrigger("doDie");
@@ -107,7 +218,7 @@ public class Enemy : MonoBehaviour
                 reactVec += Vector3.up;
                 rigid.AddForce(reactVec * 5, ForceMode.Impulse);
             }
-
+            if(enemyType != Type.D)
             Destroy(gameObject, 4);
         }
     }

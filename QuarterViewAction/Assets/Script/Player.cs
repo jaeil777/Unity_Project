@@ -44,12 +44,13 @@ public class Player : MonoBehaviour
     bool isFireReady = true;
     bool isReload;
     bool isBorder;
+    bool isDamage;
     Vector3 moveVec;
     Vector3 dodgeVec;
 
     Rigidbody rigid;
     Animator anim;
-
+    MeshRenderer[] meshs;
     GameObject nearObject;
     Weapon equipWeapon;
     int equipWeaponIndex = -1;
@@ -60,6 +61,7 @@ public class Player : MonoBehaviour
     {
         rigid = GetComponent<Rigidbody>();
         anim =GetComponentInChildren<Animator>();
+        meshs =GetComponentsInChildren<MeshRenderer>();
     }
 
     // Update is called once per frame
@@ -276,6 +278,10 @@ public class Player : MonoBehaviour
                 hasweapons[weaponIndex] = true;
 
                 Destroy(nearObject);
+            }else if(nearObject.tag == "Shop")
+            {
+                Shop shop = nearObject.GetComponent<Shop>();
+                shop.Enter(this);
             }
         }
     }
@@ -309,7 +315,7 @@ public class Player : MonoBehaviour
     private void OnTriggerStay(Collider other)
     {
 
-        if (other.tag == "Weapon")
+        if (other.tag == "Weapon" || other.tag == "Shop")
             nearObject = other.gameObject;
         else
             return;
@@ -322,25 +328,31 @@ public class Player : MonoBehaviour
 
         if (other.tag == "Weapon")
             nearObject = null;
+        else if (other.tag == "Shop")
+        {
+            Shop shop = other.gameObject.GetComponent<Shop>();
+            shop.Exit();
+            nearObject = null;
+        }
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        if(other.tag == "Item")
+        if (other.tag == "Item")
         {
             Item item = other.GetComponent<Item>();
             switch (item.type)
             {
                 case Item.Type.Ammo:
                     ammo += item.value;
-                    if(ammo > maxAmmo)
+                    if (ammo > maxAmmo)
                     {
                         ammo = maxAmmo;
                     }
                     break;
                 case Item.Type.Coin:
                     coin += item.value;
-                    if(coin>maxCoin)
+                    if (coin > maxCoin)
                     {
                         coin = maxCoin;
                     }
@@ -355,5 +367,49 @@ public class Player : MonoBehaviour
             }
             Destroy(other.gameObject);
         }
+        else if (other.tag == "EnemyBullet")
+        {
+            if (!isDamage)
+            {
+                Bullet enemyBullet = other.GetComponent<Bullet>();
+                health -= enemyBullet.damage;
+
+                bool isBossAtk = other.name == "Boss Melee Area";
+                StartCoroutine(OnDamage(isBossAtk));
+            }
+
+
+            if (other.GetComponent<Rigidbody>() != null)
+                Destroy(other.gameObject);
+        }
+
+        }
+
+    IEnumerator OnDamage(bool isBossAtk)
+    {
+        isDamage = true;
+        foreach(MeshRenderer mesh in meshs)
+        {
+            mesh.material.color = Color.yellow;
+        }
+        if (isBossAtk)
+        {
+            rigid.AddForce(transform.forward * -35, ForceMode.Impulse);
+        }
+
+
+        yield return new WaitForSeconds(1);
+        foreach (MeshRenderer mesh in meshs)
+        {
+            mesh.material.color = Color.white;
+        }
+        isDamage = false;
+
+
+        if (isBossAtk)
+        {
+          rigid.velocity = Vector3.zero;
+        }
+
     }
 }

@@ -13,7 +13,7 @@ public class Orbit : MonoBehaviour
     void Start()
     {
         offset = transform.position - target.position;
-        Debug.Log(offset);
+       
     }
 
     // Update is called once per frame
